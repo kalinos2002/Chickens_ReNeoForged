@@ -1,6 +1,6 @@
 # Chickens – Natural Spawning & Datapack Chickens
 
-*(Polish version: [README_PL](README.pl.md))*
+*(Polska wersja: [README_PL](README.pl.md))*
 
 This document explains how chickens spawn in the world, how to define a new chicken in a datapack, and how the `chickens-spawns.toml` config interacts with datapack definitions.
 
