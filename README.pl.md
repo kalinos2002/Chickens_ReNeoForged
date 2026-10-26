@@ -1,6 +1,6 @@
 # Chickens – naturalny spawn i kurczaki z datapacków
 
-*(English version: [SPAWNING.en.md](README.md))*
+*(English version: [README_EN](README.md))*
 
 Ten dokument opisuje, jak kurczaki pojawiają się w świecie, jak zdefiniować nowego kurczaka w datapacku oraz jak plik `chickens-spawns.toml` współpracuje z definicjami z datapacków.
 
