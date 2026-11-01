@@ -1,5 +1,9 @@
 # Chickens & Roost – dokumentacja dla Minecrafta 26.1.2 (NeoForge)
 
+Język: [EN](README.md) | PL
+
+Wersje: 26.1.2 [1.21.1](dokumentacja_1_21_1_md.md) | [1.19.2](dokumentacja_1_19_2_md.md)
+
 Spis: [1. Szybki start](#1-szybki-start) · [2. Plik chicken_type](#2-plik-chicken_type--wszystkie-pola) ·
 [3. Przedmioty](#3-przedmioty) · [4. Krzyżowanie](#4-krzyżowanie-parents-tier-i-szansa) ·
 [5. Czas znoszenia](#5-czas-znoszenia) · [6. Spawn](#6-naturalny-spawn) · [7. Własności](#7-własności-properties) ·
