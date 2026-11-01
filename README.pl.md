@@ -1,219 +1,350 @@
-# Chickens – naturalny spawn i kurczaki z datapacków
+# Chickens & Roost – dokumentacja dla Minecrafta 1.21.1 (NeoForge i Fabric)
 
-*(English version: [README_EN](README.md))*
-
-Ten dokument opisuje, jak kurczaki pojawiają się w świecie, jak zdefiniować nowego kurczaka w datapacku oraz jak plik `chickens-spawns.toml` współpracuje z definicjami z datapacków.
-
----
-
-## 1. Krótkie podsumowanie
-
-| Pytanie | Odpowiedź |
-|---|---|
-| Gdzie ustawić spawn **nowego kurczaka z datapacka**? | W JSON-ie kurczaka, w bloku `spawn`. |
-| Gdzie **nadpisać** spawn (dowolnego kurczaka)? | W `config/chickens-spawns.toml`. |
-| Co ma pierwszeństwo? | **Toml.** Jeśli kurczak ma wpis w tomlu, blok `spawn` z jego JSON-a jest ignorowany. |
-| Zmieniłem `spawn` w JSON-ie **wbudowanego** kurczaka (np. `chickens:iron`) i nic się nie dzieje. | Wbudowani kurczaki mają już wpis w sekcji `[spawns]` w tomlu. Ustaw ten wpis na `["datapack"]`, żeby JSON zaczął działać. |
-| Kurczak nie ma wpisu w tomlu ani bloku `spawn`. | Nigdy nie spawnuje się naturalnie (tylko hodowla, łapacz i przedmioty). |
+Spis: [1. Szybki start](#1-szybki-start) · [2. Plik chicken_type](#2-plik-chicken_type-wszystkie-pola) ·
+[3. Przedmioty](#3-przedmioty-lay_item--drop_item) · [4. Krzyżowanie](#4-krzyżowanie-parents-tier-i-szansa) ·
+[5. Czas znoszenia](#5-czas-znoszenia) · [6. Spawn](#6-naturalny-spawn) · [7. Własności](#7-własności-properties) ·
+[8. Tekstury i nazwy](#8-tekstury-ikony-i-nazwy) · [9. Wyłączanie i nadpisywanie](#9-wyłączanie-i-nadpisywanie-kurczaków) ·
+[10. Configi](#10-pliki-config) · [11. Lista wbudowanych](#11-wbudowane-kurczaki) · [12. Problemy](#12-rozwiązywanie-problemów)
 
 ---
 
-## 2. Jak działa spawn
+## O modzie
 
-1. **Biome modifier** (`data/chickens/neoforge/biome_modifier/add_chicken_spawns.json`) dodaje encję `chickens:chicken` do każdego biomu z tagu `#chickens:spawns_chickens` (domyślnie wszystkie biomy Overworldu, Netheru i Endu). Waga spawnu to `10`, a wielkość grupy `2–4`. Tych dwóch liczb **nie ma** w tomlu.
-2. **Sprawdzenie spawnu** – przed naturalnym spawnem mod sprawdza, czy w danym biomie może się pojawić co najmniej jeden włączony typ kurczaka. Jeśli nie, `chickens:chicken` nie spawnuje się tam wcale (zwykłe kurczaki z vanilli nie są ruszane).
-3. **Losowanie typu** – po pojawieniu się encji typ jest losowany z wagami spośród włączonych kurczaków dozwolonych w tym biomie. Cała grupa dostaje **ten sam** typ.
-4. **Zabezpieczenia** – kurczak bez typu (spawner, `/summon`, stare zapisy) dostaje typ pasujący do biomu, a jeśli żaden nie pasuje, losowego włączonego kurczaka bazowego (bez rodziców).
+**Chickens & Roost** łączy *Chickens Mod* (1.12.2) i *Roost* w jeden mod. Kurczaki są definiowane w **datapackach**.
 
-Typ kurczaka jest **włączony**, tylko jeśli `enabled` nie jest `false` **i** wszyscy jego przodkowie (rodzice, rekurencyjnie) są włączeni.
-
-### Kolejność decyzji dla jednego kurczaka w jednym biomie
-
-```
-1. Wpis w chickens-spawns.toml  (sekcja [spawns] lub "extraSpawns")?
-      tak → używany jest TYLKO ten wpis (chyba że to ["datapack"])
-      nie ↓
-2. Blok "spawn" w JSON-ie chicken_type?
-      tak → używany jest on
-      nie → ten kurczak nie spawnuje się naturalnie
-```
-
-Kolejność dla wagi: `weights` w tomlu → `spawn.weight` w JSON-ie → `10`.
+- **Kurczaki** (47 wbudowanych + dowolne z datapacków): znoszą surowce, krzyżują się, mają statystyki Growth / Gain / Strength.
+- **Henhouse** (kurnik, 6 rodzajów drewna), **Roost**, **Breeder**, **Collector** (zbiera z Roost).
+- **Gniazdo** (Egg Nest, z moda Hatchery): prawy klik jajkiem (zwykłym lub kolorowym) wkłada je do gniazda, po kilkunastu minutach wykluwa się pisklę (kolorowe jajko → kurczak danego typu, zwykłe → vanilla). Szybciej, gdy w gnieździe siedzi kurczak i gdy do 3 bloków nad nim świeci lampa redstone. Prawy klik na gnieździe z jajkiem wyjmuje je.
+- **Łapacz** (Catcher), **Analizator**, kolorowe jajka (rzucane), płynne jajka, jajka spawnujące.
+- Przedmiot **Kurczak** = jajko spawnujące i kurczak do wkładania w Roost / Breeder.
+- **JEI** (opcjonalnie): kategorie Krzyżowanie (rodzice → dziecko + szansa %), Znoszenie i Dropy. Kurczaki z datapacków pojawiają się automatycznie.
 
 ---
 
-## 3. Definiowanie kurczaka w datapacku
+## Różnice między wersjami
 
-Lokalizacja pliku:
+| | 1.19.2 | 1.21.1 | 26.1.2 |
+|---|---|---|---|
+| Loadery | Forge (Fabric w planie) | NeoForge + Fabric | NeoForge (Fabric w planie) |
+| Java | 17 | 21 | 25 |
+| Dane na przedmiocie | NBT | komponenty | komponenty |
+| `lay_item` / `drop_item` | `id`, `count`, `nbt` (stary zapis `components` jest tłumaczony) | `id`, `count`, `components` | `id`, `count`, `components` |
+| Rejestr kurczaków | własny wczytywacz plików (działa `/reload`) | rejestr datapackowy (wejdź do świata ponownie) | rejestr datapackowy (wejdź do świata ponownie) |
+| Nazwa bez wpisu w lang | ładna nazwa z id (Salt Chicken) | ładna nazwa z id | ładna nazwa z id |
+| Model małego kurczaka | vanilla (stary wygląd) | stary wygląd | stary wygląd (własny model) |
+| Biomy w `spawn.biomes` | tylko te, które istnieją w 1.19.2 | biomy 1.21.1 | biomy 26.1.2 |
+
+---
+
+## 1. Szybki start
+
+Minimalny kurczak (`data/mypack/chickens/chicken_type/salt.json`):
+
+```json
+{ "lay_item": { "id": "minecraft:sugar" } }
+```
+
+To wystarczy: kurczak `mypack:salt` istnieje, znosi cukier i da się go zdobyć komendą
+`/give @s chickens:chicken[chickens:chicken_data={type:"mypack:salt"}]`.
+Reszta pól jest opcjonalna.
+
+**Id kurczaka** = `<namespace>:<nazwa pliku>`. Podfolder w nazwie też działa (`mypack:ores/tin` → plik `ores/tin.json`);
+w kluczach tłumaczeń `/` zamienia się na `.`.
+
+**Struktura pakietu** (datapack + resource pack w jednym):
 
 ```
-data/<namespace>/chickens/chicken_type/<nazwa>.json
+mypack/
+├─ pack.mcmeta
+├─ data/mypack/chickens/chicken_type/salt.json         ← definicja kurczaka
+└─ assets/mypack/
+   ├─ lang/en_us.json                                  ← nazwa: "chicken.mypack.salt"
+   └─ textures/
+      ├─ entity/chicken/salt.png                       ← 64x32, kurczak w świecie
+      └─ item/chicken/salt.png                         ← 16x16, ikona przedmiotu
 ```
 
-Id kurczaka to `<namespace>:<nazwa>`. Rejestr jest synchronizowany do klientów.
+`pack.mcmeta` dla pakietu działającego jako oba typy:
 
-### Przykład (z naturalnym spawnem)
+```json
+{ "pack": { "description": "Moje kurczaki", "pack_format": 48,
+            "supported_formats": { "min_inclusive": 34, "max_inclusive": 48 } } }
+```
+
+**Instalacja:** folder/zip do `saves/<świat>/datapacks/` **oraz** do `resourcepacks/` (assety nie są ładowane z datapacków).
+Rejestr kurczaków wczytuje się przy ładowaniu świata – po zmianie JSON-a **wejdź do świata ponownie** (`/reload` nie wystarczy).
+
+---
+
+## 2. Plik chicken_type – wszystkie pola
+
+| pole | typ | domyślnie | opis |
+|---|---|---|---|
+| `lay_item` | przedmiot | **wymagane** | co kurczak znosi → [rozdz. 3](#3-przedmioty-lay_item--drop_item) |
+| `drop_item` | przedmiot | = `lay_item` | co wypada po zabiciu kurczaka |
+| `background_color` | kolor | `#FFFFFF` | kolor tła (np. w ikonie/JEI) |
+| `foreground_color` | kolor | `#FFFFFF` | kolor główny: zabarwienie kolorowego jajka, zapasowy kolor ikony |
+| `texture` | ścieżka | `<ns>:textures/entity/chicken/<nazwa>.png` | tekstura kurczaka w świecie (64×32) |
+| `parents` | 2 id | brak | `["a:x","b:y"]` – krzyżowanie tych dwóch daje tego kurczaka |
+| `breeding_chance` | 0–100 | wg tieru | szansa % wykrzyżowania → [rozdz. 4](#4-krzyżowanie-parents-tier-i-szansa) |
+| `lay_time_coefficient` | liczba | `1.0` | mnożnik czasu znoszenia |
+| `lay_time` | `{min,max}` | brak | jawny czas znoszenia w tickach (zastępuje wzór) |
+| `properties` | lista | `[]` | `fire_immune`, `explosion_immune`, `drowning_immune`, `freeze_immune`, `hover` |
+| `spawn` | obiekt | brak | naturalny spawn → [rozdz. 6](#6-naturalny-spawn) |
+| `enabled` | bool | `true` | `false` wyłącza kurczaka (i jego potomków) |
+
+**Kolory** można podać jako `"#RRGGBB"`, `"RRGGBB"` lub liczbę dziesiętną (`15132390`).
+
+**Kompletny przykład** (to samo, co `copper.json` w tym pakiecie):
 
 ```json
 {
-  "lay_item": { "id": "minecraft:copper_ingot", "count": 1 },
-  "drop_item": { "id": "minecraft:raw_copper", "count": 1 },
-  "background_color": "#C77D4F",
-  "foreground_color": "#E0A070",
-  "texture": "mypack:textures/entity/copper_chicken.png",
-  "lay_time_coefficient": 1.0,
+  "lay_item": { "id": "minecraft:copper_ingot", "count": 2 },
+  "drop_item": { "id": "minecraft:raw_copper" },
+  "background_color": "#C15A36",
+  "foreground_color": "#E77C56",
+  "parents": ["chickens:iron", "chickens:orange"],
+  "breeding_chance": 30,
+  "lay_time_coefficient": 0.8,
   "properties": ["fire_immune"],
-  "spawn": {
-    "biomes": "#minecraft:is_badlands",
-    "weight": 10
-  }
+  "spawn": { "biomes": "#minecraft:is_badlands", "weight": 5 }
 }
 ```
-
-### Przykład (tylko z hodowli, bez naturalnego spawnu)
-
-```json
-{
-  "lay_item": { "id": "minecraft:amethyst_shard", "count": 1 },
-  "texture": "mypack:textures/entity/amethyst_chicken.png",
-  "parents": [ "chickens:purple", "chickens:diamond" ]
-}
-```
-
-### Pola
-
-| Pole | Wymagane | Opis |
-|---|---|---|
-| `lay_item` | **tak** | Przedmiot, który kurczak znosi. |
-| `drop_item` | nie | Przedmiot wypadający po śmierci (domyślnie `lay_item`). |
-| `background_color` / `foreground_color` | nie | `"#RRGGBB"` lub liczba. Domyślnie `#FFFFFF`. Używane do barwienia i w interfejsie. |
-| `texture` | nie | Tekstura encji. Bez niej: `<namespace>:textures/entity/chicken/<nazwa>.png`. |
-| `parents` | nie | Dokładnie 2 id kurczaków. Pozwala hodować tego kurczaka. |
-| `lay_time_coefficient` | nie | Mnożnik czasu znoszenia (domyślnie `1.0`). Minimum to `6000 * tier * współczynnik` ticków, maksimum to dwukrotność. |
-| `lay_time` | nie | `{ "min": ticki, "max": ticki }` – zastępuje powyższy wzór. |
-| `properties` | nie | Lista: `fire_immune`, `explosion_immune`, `drowning_immune`, `freeze_immune`, `hover`. |
-| `spawn` | nie | Naturalny spawn – patrz niżej. |
-| `enabled` | nie | `false` wyłącza kurczaka (i wszystkich jego potomków). Domyślnie `true`. |
-| `breeding_chance` | nie | 0–100 (procent). Można nadpisać przez `breedingChances` w głównym configu. |
-
-### Blok `spawn`
-
-```json
-"spawn": {
-  "biomes": "#chickens:spawn/normal",
-  "weight": 10
-}
-```
-
-* `biomes` – pojedynczy tag biomów (`"#namespace:tag"`), pojedynczy biom (`"minecraft:plains"`) albo lista biomów (`["minecraft:plains", "minecraft:desert"]`).
-* `weight` – 1–1000, domyślnie `10`. Im więcej, tym częściej w biomach współdzielonych z innymi kurczakami.
-
-Tagi dołączone do moda: `#chickens:spawn/normal` (las, sawanna, dżungla, tajga, równiny, słonecznikowe równiny, łąka, wiśniowy gaj), `#chickens:spawn/snow`, `#chickens:spawn/nether`, `#chickens:spawn/end`.
-
-> Blok `spawn` jest wczytywany **tylko po stronie serwera**. Nie jest synchronizowany do klientów (nie wpływa to na rozgrywkę, bo o spawnie decyduje serwer).
 
 ---
 
-## 4. `config/chickens-spawns.toml`
+## 3. Przedmioty (`lay_item`, `drop_item`)
 
-Plik generuje się przy pierwszym uruchomieniu. **Istniejący plik nie dostaje nowych wartości domyślnych** – po aktualizacji moda usuń go albo edytuj ręcznie, jeśli chcesz nowych ustawień.
+Format jak ItemStack w datapackach 1.21:
 
-### 4.1 `[spawns]` – wbudowani kurczaki
+```json
+{ "id": "minecraft:iron_ingot", "count": 3 }
+```
 
-Każdy wbudowany kurczak ma jedną listę selektorów biomów:
+`count` (1–99) = ile sztuk za jedno zniesienie (dla `lay_item` mnożone później przez statystykę *Gain* kurczaka).
+Można dodać `components`:
+
+```json
+{ "id": "minecraft:diamond_pickaxe", "count": 1,
+  "components": { "minecraft:custom_name": "\"Kilof z kurczaka\"" } }
+```
+
+**Płyny** – znoś „płynne jajko” z wybranym płynem (działa jak jednorazowe wiadro):
+
+```json
+{ "id": "chickens:liquid_egg", "count": 1, "components": { "chickens:liquid": "minecraft:lava" } }
+```
+
+Kurczaki, które znoszą **barwnik** (`minecraft:*_dye`), dostają automatycznie kolorowe jajko do rzucania.
+
+---
+
+## 4. Krzyżowanie: parents, tier i szansa
+
+### Parents
+`"parents": ["chickens:iron", "chickens:orange"]` – kolejność nie ma znaczenia. Rodzicami mogą być kurczaki z innych
+pakietów i z moda. Kurczak **bez** `parents` jest bazowy (tier 1) – zdobywa się go ze spawnu/komendy, nie z krzyżowania.
+
+### Tier
+Tier = `1` dla bazowych, w pozostałych przypadkach `max(tier rodzica A, tier rodzica B) + 1`. Wpływa na:
+- domyślną szansę krzyżowania (wyższy tier = rzadszy),
+- domyślny czas znoszenia (`6000 × tier` ticków).
+
+### Kto może powstać z pary
+Z krzyżowania rodziców A i B mogą wypaść: **A, B** oraz **każdy kurczak, który wymienia dokładnie tę parę w `parents`**
+(może ich być kilku!). Domyślne wagi: `waga = (najwyższy tier w puli + 1) − tier kurczaka`, więc niższy tier = częściej.
+
+### Ręczne ustawienie szansy
+`"breeding_chance": 30` w JSON-ie albo w configu `chickens-common.toml`:
+
+```toml
+breedingChances = ["mypack:copper = 30", "mypack:netherite_scrap = 10"]
+```
+
+Znaczenie: **ten kurczak wypada z dokładnie taką szansą (w %)**, gdy krzyżujesz jego rodziców. Zasady:
+- Config ma pierwszeństwo przed JSON-em.
+- Pozostałe procenty dzielą się między resztę możliwego potomstwa tej pary (wg domyślnych wag).
+- Jeśli kilka wpisów razem przekracza 100 %, są skalowane w dół do 100 %.
+- Jeśli *wszystkie* możliwe wyniki mają wpis, są normalizowane do 100 %.
+- Szansa wyświetla się w JEI (kategoria Krzyżowanie). Config jest czytany osobno po stronie klienta i serwera – trzymaj
+  ten sam plik w obu miejscach, inaczej JEI może pokazywać inną wartość niż ta, która działa.
+
+Przykład: para `iron + orange` daje A (iron), B (orange) i `mypack:copper` z `breeding_chance: 30` → copper 30 %,
+a iron i orange dzielą 70 % po równo (mają ten sam tier).
+
+---
+
+## 5. Czas znoszenia
+
+Domyślnie (ticki, 20 ticków = 1 s):
+
+```
+min = max(1, 6000 × tier × lay_time_coefficient)
+max = 2 × min
+```
+
+Zniesienie następuje w losowym czasie z przedziału min–max. Możesz to zastąpić:
+`"lay_time": { "min": 9000, "max": 15000 }` (min ≤ max; max zostanie podniesione do min, jeśli jest mniejsze).
+`lay_time_coefficient` < 1 = szybciej, > 1 = wolniej. W Roost/Breeder czas dzieli dodatkowo
+`roostSpeed` / `breederSpeed` z `chickens-common.toml` oraz statystyka *Growth* kurczaka.
+
+---
+
+## 6. Naturalny spawn
+
+### W JSON-ie
+```json
+"spawn": { "biomes": "#minecraft:is_badlands", "weight": 5 }
+```
+- `biomes`: tag (`"#minecraft:is_forest"`), pojedynczy biom (`"minecraft:desert"`) albo lista:
+  `["minecraft:plains", "#minecraft:is_taiga"]`.
+- `weight` (1–1000, domyślnie 10): w biomie, w którym może spawnować się kilka kurczaków, losowanie jest ważone.
+
+Kurczak **bez** bloku `spawn` nie spawnuje się naturalnie (nadal można go dostać z krzyżowania, komendą lub łapaczem).
+
+Przydatne tagi biomów z Minecrafta: `#minecraft:is_overworld`, `is_nether`, `is_end`, `is_forest`, `is_taiga`, `is_jungle`,
+`is_savanna`, `is_badlands`, `is_mountain`, `is_beach`, `is_ocean`, `is_river`, `is_hill`. Tagi mini-moda:
+`#chickens:spawn/normal` (lasy, sawanny, dżungla, tajga, równiny, łąki, cherry grove), `#chickens:spawn/snow`,
+`#chickens:spawn/nether`, `#chickens:spawn/end`.
+
+Mod dodaje encję kurczaka do biomów Overworldu, Netheru i Endu – o tym, *który* kurczak się pojawi, decyduje spawn z JSON-a
+lub configu. Poza Overworldem kurczaki mogą stawać na każdym stałym bloku (netherrack, end stone…), w Overworldzie – jak
+zwierzęta, na trawie.
+
+### W configu – `config/chickens-spawns.toml`
+Config **wygrywa** z JSON-em i jest najwygodniejszy do dostrojenia bez edycji paczek.
 
 ```toml
 [spawns]
-    log = ["#chickens:spawn/normal"]
-    ender = ["#minecraft:is_end"]
-    iron = []
-    gold = ["datapack"]
-    diamond = ["overworld", "minecraft:desert"]
+    # każdy wbudowany kurczak ma wpis: lista selektorów biomów
+    ender = ["end"]                       # tylko End
+    log   = ["#minecraft:is_forest"]      # tylko lasy
+    white = ["nether"]
+    smart = []                            # [] = nigdy naturalnie
+    flint = ["datapack"]                  # "datapack" = bierz blok spawn z JSON-a
+
+# kurczaki z datapacków (i nadpisanie dowolnego innego): "id = selektor, selektor"
+extraSpawns = ["mypack:copper = #minecraft:is_badlands, minecraft:desert"]
+
+# wagi (domyślnie 10 albo z JSON-a)
+weights = ["mypack:copper = 5", "chickens:ender = 3"]
 ```
 
-| Wartość | Znaczenie |
-|---|---|
-| `[]` | Nigdy nie spawnuje się naturalnie. |
-| `["datapack"]` | Użyj bloku `spawn` z JSON-a kurczaka (**wymagane, żeby blok `spawn` w JSON-ie wbudowanego kurczaka zadziałał**). |
-| `[ "selektor", ... ]` | Spawnuje się we wszystkich wymienionych biomach. |
-
-Większość wbudowanych kurczaków ma domyślnie `[]`, więc w świeżym configu tylko kilku z nich spawnuje się naturalnie.
-
-### 4.2 Selektory
-
-| Selektor | Pasuje do |
-|---|---|
-| `overworld` | Biomów z `#minecraft:is_overworld` |
-| `nether` | Biomów z `#minecraft:is_nether` |
-| `end` | Biomów z `#minecraft:is_end` |
-| `any` (także `all`, `*`) | Każdego biomu |
-| `minecraft:plains` | Jednego konkretnego biomu |
-| `#minecraft:is_forest` | Tagu biomów (prefiks `#`) |
-
-### 4.3 `extraSpawns` – kurczaki z datapacków i nadpisania
-
-Dla kurczaków, których **nie ma** w `[spawns]` (kurczaki z datapacków), albo do nadpisania dowolnego kurczaka:
-
-```toml
-extraSpawns = [
-    "mypack:copper = #minecraft:is_badlands",
-    "mypack:amethyst = overworld, minecraft:dripstone_caves",
-    "chickens:iron = #minecraft:is_mountain",
-    "mypack:tin = datapack"
-]
-```
-
-* Format: `"namespace:kurczak = selektor, selektor, ..."`.
-* Te wpisy **mają pierwszeństwo** przed `[spawns]`.
-* `= datapack` usuwa nadpisanie i oddaje kontrolę JSON-owi.
-* Pusta lista selektorów (`"mypack:tin = "`) oznacza „nigdy nie spawnuje się naturalnie”.
-
-### 4.4 `weights`
-
-```toml
-weights = [
-    "chickens:ender = 5",
-    "mypack:copper = 20"
-]
-```
-
-Domyślna waga to `spawn.weight` z JSON-a, a bez niego `10`. Wagi mają znaczenie tylko wtedy, gdy w jednym biomie może się pojawić kilku kurczaków.
+Selektory: `overworld`, `nether`, `end`, `any`, biom (`minecraft:plains`), tag biomów (`#minecraft:is_forest`).
+Błędne wpisy są pomijane z ostrzeżeniem w logu. Zmiany działają po restarcie świata/serwera.
 
 ---
 
-## 5. Typowe scenariusze
+## 7. Własności (`properties`)
 
-**Zrobiłem nowego kurczaka w datapacku i chcę, żeby spawnował się w badlandsach.**
-Dodaj blok `spawn` do jego JSON-a. Nie ruszaj tomla.
-
-**Chcę zmienić, gdzie spawnuje się wbudowany kurczak (np. `chickens:iron`) przez datapack.**
-Nadpisz jego JSON, dodaj blok `spawn` **oraz** ustaw `iron = ["datapack"]` w sekcji `[spawns]` w tomlu.
-
-**Jestem adminem serwera i chcę zmienić spawn bez ruszania datapacków.**
-Użyj `extraSpawns` i `weights` w tomlu.
-
-**Chcę, żeby kurczak przestał się spawnować naturalnie.**
-Toml: `iron = []` (wbudowany) albo `"mypack:copper = "` w `extraSpawns`. Datapack: usuń blok `spawn`.
-
-**Chcę całkowicie wyłączyć kurczaka.**
-Ustaw `"enabled": false` w jego JSON-ie (potomkowie też zostaną wyłączeni).
-
----
-
-## 6. Rozwiązywanie problemów
-
-| Objaw | Prawdopodobna przyczyna |
+| wartość | efekt |
 |---|---|
-| Kurczak z datapacka nigdy się nie spawnuje. | Brak bloku `spawn`, nadpisuje go wpis w tomlu albo kurczak/jego przodek jest wyłączony. Sprawdź w logu ostrzeżenia `chickens-spawns.toml: ...`. |
-| `spawn` w JSON-ie wbudowanego kurczaka jest ignorowany. | Jego wpis w tomlu nie jest `["datapack"]`. |
-| W ogóle nie ma `chickens:chicken` w danym biomie. | Żaden włączony kurczak nie jest tam dozwolony (sekcja 2, punkt 2). |
-| Po aktualizacji moda brakuje nowych ustawień domyślnych. | Nadal używany jest stary `chickens-spawns.toml` – usuń go, żeby się wygenerował na nowo. |
-| W logu ostrzeżenie `bad selector` / `ignoring ...`. | Literówka w id lub selektorze w tomlu; wpis jest pomijany. |
-| Kurczak pojawił się z teksturą vanilli / daje przedmiot z brakującą teksturą. | Naprawione: kurczak bez typu dostaje teraz typ przy spawnie lub w pierwszym ticku. Upewnij się, że ścieżka `texture` danego typu istnieje w resource packu. |
+| `fire_immune` | odporny na obrażenia od ognia i lawy |
+| `explosion_immune` | odporny na wybuchy |
+| `drowning_immune` | odporny na utonięcie |
+| `freeze_immune` | odporny na zamarzanie (powder snow) – nie zamarza i nie dostaje obrażeń od zimna |
+| `hover` | w powietrzu spada dwa razy wolniej (szybuje) |
 
 ---
 
-## 7. Powiązane zachowanie
+## 8. Tekstury, ikony i nazwy
 
-* Kurczaki z tego moda **nigdy nie dostają obrażeń od upadku**, tak jak vanillowe (`causeFallDamage` zwraca `false`, a encja jest w tagu typów encji `minecraft:fall_damage_immune`).
-* Łapacz odmawia złapania kurczaka o nieznanym lub wyłączonym typie.
+### Tekstura kurczaka w świecie
+PNG **64×32**, układ jak tekstura vanilla kurczaka (`minecraft:textures/entity/chicken/chicken.png`).
+Domyślna ścieżka: `assets/<ns>/textures/entity/chicken/<nazwa>.png`; inną wskażesz polem `texture`
+(np. `"texture": "chickens:textures/entity/iron_chicken.png"` – możesz użyć gotowych tekstur z moda).
+Tekstura z większą rozdzielczością (np. 128×64) też działa.
+
+### Ikona przedmiotu (16×16)
+Ręcznie rysowany sprite: `assets/<ns>/textures/item/chicken/<nazwa>.png` (zwykły kurczak: `chickens:vanilla`).
+Mod rysuje go jak zwykły przedmiot (z grubością). **Bez tego pliku** kurczak dostaje wspólny szablon zabarwiony kolorami
+wyliczonymi z jego tekstury – wygląda poprawnie, ale nie unikalnie. Gotowe ikony wbudowanych kurczaków leżą w
+`assets/chickens/textures/item/chicken/` – możesz je podejrzeć jako wzór rozmiaru i stylu.
+
+### Nazwa
+Klucz `chicken.<namespace>.<nazwa>` w pliku lang:
+
+```json
+{ "chicken.mypack.salt": "Salt Chicken" }
+```
+
+Dla `mypack:ores/tin` klucz to `chicken.mypack.ores.tin`. Bez wpisu nazwa powstaje automatycznie: `Salt Chicken`.
+
+---
+
+## 9. Wyłączanie i nadpisywanie kurczaków
+
+- **Wyłączenie**: plik o tym samym id co wbudowany kurczak, np. `data/chickens/chickens/chicken_type/smart.json`:
+  ```json
+  { "lay_item": { "id": "minecraft:egg" }, "enabled": false }
+  ```
+  Wyłączony kurczak znika z krzyżowania, spawnu i JEI; **jego potomkowie również** (są wyłączeni, jeśli którykolwiek
+  przodek jest wyłączony).
+- **Nadpisanie**: ten sam plik z pełną, zmienioną definicją (inny `lay_item`, czas, własności…) – wygrywa datapack
+  wczytany później (kolejność w menu datapacków).
+- Parents mogą wskazywać dowolnego kurczaka, także z innego pakietu.
+
+---
+
+## 10. Pliki config
+
+**`config/chickens-common.toml`**
+
+| klucz | domyślnie | opis |
+|---|---|---|
+| `roostSpeed` | `1.0` | mnożnik szybkości Roost |
+| `breederSpeed` | `1.0` | mnożnik szybkości Breeder |
+| `vanillaChickensLayEggsInRoost` | `true` | `false` = vanilla kurczak w Roost daje tylko pióra |
+| `alwaysShowStats` | `false` | pokazuj Growth/Gain/Strength także dla nieprzeanalizowanych |
+| `henhouseRadius` | `4` | promień (bloki), w którym kurczaki dostarczają jajka do kurnika |
+| `breedingChances` | `[]` | szanse krzyżowania, `"id = procent"` |
+
+**`config/chickens-spawns.toml`** – patrz [rozdz. 6](#w-configu--configchickens-spawnstoml).
+
+---
+
+## 11. Wbudowane kurczaki
+
+`vanilla` (`minecraft:chicken`) oraz 47 z namespace `chickens`:
+black, blaze, blue, brown, clay, coal, cyan, diamond, emerald, ender, flint, ghast, glass, glowstone, gold, gray, green,
+gunpowder, iron, lava, leather, light_blue, light_gray, lime, log, magenta, magma, netherwart, obsidian, orange, pink,
+prismarine_crystal, prismarine_shard, purple, quartz, red, redstone, sand, slime, smart, snowball, soul_sand, string,
+water, white, yellow.
+
+Domyślny spawn: `white`, `flint`, `quartz`, `soul_sand` – Nether; `ender` – End; `log`, `sand` – biomy z
+`#chickens:spawn/normal`; reszta tylko z krzyżowania.
+
+---
+
+## 12. Rozwiązywanie problemów
+
+| problem | przyczyna / rozwiązanie |
+|---|---|
+| Kurczak się nie pojawia | Sprawdź literówki w JSON-ie (log: `Failed to load ... chicken_type`). Zmiany wczytują się przy wejściu do świata, nie przez `/reload`. |
+| Kurczak nie spawnuje się naturalnie | Brak bloku `spawn` albo biom nie pasuje; sprawdź też `chickens-spawns.toml` (wpis `[]` blokuje spawn). Spawn zależy też od światła/podłoża jak u zwierząt (w Overworldzie trawa). |
+| Nazwa wygląda jak „Salt Chicken”, a mam inną w lang | Klucz musi być dokładnie `chicken.<ns>.<nazwa>`, a paczka włączona jako **resource pack**. |
+| Biała/fioletowa-czarna tekstura | Zła ścieżka lub rozmiar; sprawdź `texture` i czy plik leży w `assets/<ns>/textures/entity/chicken/`. |
+| Ikona to wspólny szablon | Brak pliku `assets/<ns>/textures/item/chicken/<nazwa>.png` w resource packu. |
+| Krzyżowanie nie daje mojego kurczaka | Dokładnie ta para rodziców w `parents`? Kurczak i jego przodkowie nie mogą mieć `enabled: false`. Szansa < 100 % – wynik jest losowy. |
+| JEI pokazuje inną szansę niż w grze | Różne pliki `chickens-common.toml` u klienta i serwera. |
+
+---
+
+## 13. Budowanie i uruchamianie (1.21.1)
+
+Projekt ma 3 moduły Gradle:
+
+| moduł | zawartość |
+|---|---|
+| `common` | cały kod i zasoby moda niezależne od loadera (kompilowane tylko względem vanilli) |
+| `neoforge` | wejście `@Mod`, rejestracja (`RegisterEvent`), capability, klient NeoForge, `neoforge.mods.toml`, biome modifier |
+| `fabric` | `ModInitializer` / `ClientModInitializer`, rejestracja, Transfer API, `fabric.mod.json` |
+
+- Wymagania: **JDK 21**.
+- `./gradlew buildAll` → `neoforge/build/libs/chickens-neoforge-1.21.1-<wersja>.jar` oraz `fabric/build/libs/chickens-fabric-1.21.1-<wersja>.jar`.
+- Pojedynczo: `./gradlew :neoforge:build`, `./gradlew :fabric:build`.
+- Testy w grze: `./gradlew :neoforge:runClient`, `./gradlew :fabric:runClient`.
+- Wersje Fabric API i Loadera oraz JEI: w `gradle.properties` (`fabric_api_version`, `fabric_loader_version`, `jei_version`).
+- Rejestracja przez `Registrar` (zamiast `DeferredRegister`), własny `ItemStackHandler` (`com.kalinosv.chickens.inv`), własny prosty config, tag nasion `c:seeds`.
+
+**Dane przedmiotów:** kurczak = komponent `chickens:chicken_data`, kolorowe/spawn jajko = `chickens:chicken_type`, płynne jajko = `chickens:liquid`.
