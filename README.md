@@ -4,12 +4,12 @@ Lang: EN | [PL](dokumentacja_26_1_2_md.md)
 
 Versions: 26.1.2 [1.21.1](documentation_1_21_1_md.md) | [1.19.2](documentation_1_19_2_md.md)
 
-Contents: [1. Quick Start](#1-quick-start) · [2. chicken_type File](#2-chicken_type-file--all-fields) ·
+Contents: <details> <summary>Expand List</summary> [1. Quick Start](#1-quick-start) · [2. chicken_type File](#2-chicken_type-file--all-fields) ·
 [3. Items](#3-items) · [4. Breeding](#4-breeding-parents-tier-and-chance) ·
 [5. Laying Time](#5-laying-time) · [6. Spawning](#6-natural-spawning) · [7. Properties](#7-properties) ·
 [8. Textures and Names](#8-textures-icons-and-names) · [9. Disabling and Overriding](#9-disabling-and-overriding-chickens) ·
 [10. Configs](#10-config-files) · [11. Built-in List](#11-built-in-chickens) · [12. Troubleshooting](#12-troubleshooting) ·
-[13. Version Details](#13-version-2612-details)
+[13. Version Details](#13-version-2612-details)</details>
 
 ## About the Mod
 
