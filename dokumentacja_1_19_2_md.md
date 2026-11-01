@@ -2,7 +2,7 @@
 
 Język: [EN](documentation_1_19_2_md.md) | PL
 
-Wersje: [26.1.2](README.md) [1.21.1](documentation_1_21_1_md.md) | 1.19.2
+Wersje: [26.1.2](dokumentacja_26_1_2_md.md) [1.21.1](dokumentacja_1_21_1_md.md) | 1.19.2
 
 Spis: [1. Szybki start](#1-szybki-start) · [2. Plik chicken_type](#2-plik-chicken_type--wszystkie-pola) ·
 [3. Przedmioty](#3-przedmioty) · [4. Krzyżowanie](#4-krzyżowanie-parents-tier-i-szansa) ·
