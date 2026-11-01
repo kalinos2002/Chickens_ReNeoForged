@@ -1,5 +1,7 @@
 # Chickens & Roost – Documentation for Minecraft 1.19.2 (Forge)
 
+Lang: EN | [PL](dokumentacja_1_19_2_md.md)
+
 Versions: [26.1.2](README.md) [1.21.1](documentation_1_21_1_md.md) | 1.19.2
 
 Contents: [1. Quick Start](#1-quick-start) · [2. chicken_type File](#2-chicken_type-file--all-fields) ·
