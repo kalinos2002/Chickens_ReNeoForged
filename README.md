@@ -1,5 +1,7 @@
 # Chickens & Roost – Documentation for Minecraft 26.1.2 (NeoForge)
 
+Lang: EN | [PL](dokumentacja_26_1_2_md.md)
+
 Versions: 26.1.2 [1.21.1](documentation_1_21_1_md.md) | [1.19.2](documentation_1_19_2_md.md)
 
 Contents: [1. Quick Start](#1-quick-start) · [2. chicken_type File](#2-chicken_type-file--all-fields) ·
